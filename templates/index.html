@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}持仓概览 - 策略管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-chart-pie me-2"></i>持仓概览</h2>
+        <p class="text-muted">管理您的股票投资组合和负成本持仓策略</p>
+    </div>
+</div>
+
+<!-- 资金概况卡片 -->
+<div class="row mb-4">
+    <div class="col-lg-4 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-0">波段盈利</h6>
+                        <h4 class="mb-0">${{ "%.2f"|format(portfolio.total_band_profit) }}</h4>
+                    </div>
+                    <i class="fas fa-coins fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-0">额外资金</h6>
+                        <h4 class="mb-0">${{ "%.2f"|format(portfolio.additional_funds) }}</h4>
+                    </div>
+                    <i class="fas fa-plus-circle fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-0">总可用资金</h6>
+                        <h4 class="mb-0">${{ "%.2f"|format(portfolio.total_available_funds) }}</h4>
+                    </div>
+                    <i class="fas fa-wallet fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 股票列表 -->
+{% if portfolio.portfolio %}
+<div class="row">
+    {% for stock in portfolio.portfolio %}
+    <div class="col-lg-6 mb-4">
+        <div class="card stock-card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0">{{ stock.code }}</h5>
+                    <small class="text-muted">{{ stock.name }} - {{ stock.market }}</small>
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
+                            data-bs-toggle="dropdown">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('trades', stock_code=stock.code) }}">
+                            <i class="fas fa-list me-2"></i>交易记录
+                        </a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('edit_stock', stock_code=stock.code) }}">
+                            <i class="fas fa-edit me-2"></i>编辑信息
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="{{ url_for('delete_stock', stock_code=stock.code) }}"
+                               onclick="return confirm('确定要删除这只股票吗？')">
+                            <i class="fas fa-trash me-2"></i>删除股票
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- 持仓信息 -->
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <small class="text-muted">当前持仓</small>
+                        <div class="h6 mb-0">{{ stock.current_shares }}股</div>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">目标持仓</small>
+                        <div class="h6 mb-0">{{ stock.target_shares }}股</div>
+                    </div>
+                </div>
+                
+                <!-- 持仓进度 -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small class="text-muted">持仓进度</small>
+                        <small class="text-muted">{{ (stock.progress * 100)|round(1) }}%</small>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: {{ (stock.progress * 100)|round(1) }}%">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 价格信息 -->
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <small class="text-muted">平均成本</small>
+                        <div class="h6 mb-0">${{ "%.2f"|format(stock.avg_cost) }}</div>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">当前价格</small>
+                        <div class="h6 mb-0">
+                            <form method="POST" action="{{ url_for('update_price') }}" class="d-inline">
+                                <input type="hidden" name="stock_code" value="{{ stock.code }}">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" name="current_price" 
+                                           value="{{ stock.current_price }}" step="0.01" min="0"
+                                           onchange="this.form.submit()">
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 盈亏信息 -->
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <small class="text-muted">当前市值</small>
+                        <div class="h6 mb-0">${{ "%.2f"|format(stock.current_value) }}</div>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">波段盈利</small>
+                        <div class="h6 mb-0 {{ 'text-success' if stock.band_profit > 0 else 'text-danger' if stock.band_profit < 0 else '' }}">
+                            ${{ "%.2f"|format(stock.band_profit) }}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 负成本状态 -->
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        <i class="fas fa-coins me-1"></i>初始投入: ${{ "%.2f"|format(stock.initial_investment) }}
+                    </small>
+                    <span class="badge {{ 'bg-success' if stock.negative_cost_status == '已达成' else 'bg-warning' if '进度' in stock.negative_cost_status else 'bg-secondary' }}">
+                        {{ stock.negative_cost_status }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('trades', stock_code=stock.code) }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-list me-1"></i>交易记录
+                    </a>
+                    <small class="text-muted align-self-center">
+                        还需: {{ stock.target_shares - stock.current_shares }}股
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+    <h4 class="text-muted">暂无股票数据</h4>
+    <p class="text-muted">开始添加您的第一只股票，构建您的投资组合</p>
+    <a href="{{ url_for('add_stock') }}" class="btn btn-primary btn-lg">
+        <i class="fas fa-plus me-2"></i>添加股票
+    </a>
+</div>
+{% endif %}
+{% endblock %}

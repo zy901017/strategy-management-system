@@ -1,0 +1,14 @@
+services:
+  # 负成本持仓策略管理系统
+  - type: web
+    name: strategy-management-system
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: FLASK_ENV
+        value: production
+    healthCheckPath: /health
+

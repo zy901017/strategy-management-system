@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+
+{% block title %}策略分析 - 增强版{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-brain"></i> 智能策略分析</h2>
+                <div class="btn-group">
+                    <button class="btn btn-outline-primary" onclick="refreshAnalysis()">
+                        <i class="fas fa-sync-alt"></i> 刷新分析
+                    </button>
+                    <button class="btn btn-outline-success" onclick="exportReport()">
+                        <i class="fas fa-download"></i> 导出报告
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% for suggestion in suggestions %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h4 class="mb-0">
+                                <i class="fas fa-chart-line"></i> 
+                                {{ suggestion.code }} - {{ suggestion.name }}
+                            </h4>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <span class="badge bg-light text-dark fs-6">
+                                当前价格: ${{ "%.2f"|format(suggestion.current_price) }}
+                            </span>
+                            <span class="badge bg-{{ suggestion.price_color }} fs-6 ms-2">
+                                {{ suggestion.price_analysis }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- 价格分析区域 -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-chart-area text-info"></i> 价格分析
+                                    </h6>
+                                    <div class="mb-2">
+                                        <strong>当前价格:</strong> ${{ "%.2f"|format(suggestion.current_price) }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>平均成本:</strong> ${{ "%.2f"|format(suggestion.avg_cost) }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>价格偏离:</strong> 
+                                        <span class="text-{{ suggestion.price_color }}">
+                                            {{ "%.1f"|format(suggestion.price_vs_cost_pct) }}%
+                                        </span>
+                                    </div>
+                                    <div class="alert alert-{{ suggestion.price_color }} mb-0">
+                                        <small>{{ suggestion.price_advice }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-target text-success"></i> 持仓进度
+                                    </h6>
+                                    <div class="mb-2">
+                                        <strong>当前持仓:</strong> {{ suggestion.current_shares }}股
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>目标持仓:</strong> {{ suggestion.target_shares }}股
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>还需增持:</strong> {{ suggestion.shares_needed }}股
+                                    </div>
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar bg-success" 
+                                             style="width: {{ suggestion.progress_pct }}%">
+                                            {{ "%.1f"|format(suggestion.progress_pct) }}%
+                                        </div>
+                                    </div>
+                                    <div class="alert alert-info mb-0">
+                                        <small>{{ suggestion.holding_advice }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 策略建议区域 -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-plus-circle"></i> 增持策略
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <span class="badge bg-{{ 'success' if suggestion.holding_priority == '高' else 'warning' if suggestion.holding_priority == '中' else 'secondary' }}">
+                                            优先级: {{ suggestion.holding_priority }}
+                                        </span>
+                                    </div>
+                                    <p class="mb-2">{{ suggestion.holding_advice }}</p>
+                                    <div class="alert alert-light">
+                                        <small><strong>具体行动:</strong><br>{{ suggestion.holding_action }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-exchange-alt"></i> 波段策略
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <p class="mb-2">{{ suggestion.band_advice }}</p>
+                                    <div class="mb-2">
+                                        <small><strong>操作详情:</strong><br>{{ suggestion.band_detail }}</small>
+                                    </div>
+                                    <div class="alert alert-warning">
+                                        <small>{{ suggestion.band_profit_estimate }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card border-info">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-wallet"></i> 资金策略
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <strong>资金需求:</strong> ${{ "%.0f"|format(suggestion.funds_needed) }}
+                                    </div>
+                                    <p class="mb-2">{{ suggestion.fund_advice }}</p>
+                                    <div class="alert alert-info">
+                                        <small>{{ suggestion.fund_strategy }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 负成本分析 -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card border-{{ suggestion.negative_cost_color }}">
+                                <div class="card-header bg-{{ suggestion.negative_cost_color }} text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-trophy"></i> 负成本持仓分析
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-2">
+                                                <strong>初始投入:</strong> ${{ "%.2f"|format(suggestion.initial_investment) }}
+                                            </div>
+                                            <div class="mb-2">
+                                                <strong>波段盈利:</strong> ${{ "%.2f"|format(suggestion.band_profit) }}
+                                            </div>
+                                            <div class="mb-2">
+                                                <strong>完成进度:</strong>
+                                                <div class="progress">
+                                                    <div class="progress-bar bg-{{ suggestion.negative_cost_color }}" 
+                                                         style="width: {{ suggestion.negative_cost_progress }}%">
+                                                        {{ "%.1f"|format(suggestion.negative_cost_progress) }}%
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="alert alert-{{ suggestion.negative_cost_color }}">
+                                                <h6>{{ suggestion.negative_cost_advice }}</h6>
+                                                <p class="mb-0">{{ suggestion.negative_cost_detail }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 具体操作步骤 -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-list-ol"></i> 具体操作步骤
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <ol class="mb-0">
+                                                {% for step in suggestion.action_steps %}
+                                                <li class="mb-2">{{ step }}</li>
+                                                {% endfor %}
+                                            </ol>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="alert alert-light">
+                                                <h6><i class="fas fa-clock"></i> 时间预测</h6>
+                                                <p class="mb-0">{{ suggestion.time_prediction }}</p>
+                                            </div>
+                                            <div class="mt-2">
+                                                <small class="text-muted">
+                                                    <strong>风险评估:</strong><br>
+                                                    波动风险: {{ suggestion.volatility_risk }}<br>
+                                                    仓位风险: {{ suggestion.position_risk }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- 汇总分析 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie"></i> 投资组合汇总分析
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4 class="text-primary">{{ suggestions|length }}</h4>
+                                <p class="mb-0">持仓股票</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4 class="text-success">
+                                    ${{ "%.0f"|format(suggestions|sum(attribute='band_profit')) }}
+                                </h4>
+                                <p class="mb-0">总波段盈利</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4 class="text-warning">
+                                    {{ suggestions|selectattr('shares_needed', 'gt', 0)|list|length }}
+                                </h4>
+                                <p class="mb-0">需要增持</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4 class="text-info">
+                                    {{ suggestions|selectattr('negative_cost_progress', 'ge', 100)|list|length }}
+                                </h4>
+                                <p class="mb-0">已达负成本</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function refreshAnalysis() {
+    location.reload();
+}
+
+function exportReport() {
+    // 导出功能可以后续实现
+    alert('导出功能开发中...');
+}
+
+// 自动刷新功能
+setInterval(function() {
+    // 每5分钟自动刷新一次
+    // location.reload();
+}, 300000);
+</script>
+
+<style>
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.progress {
+    height: 20px;
+}
+
+.alert {
+    border-radius: 8px;
+}
+
+.badge {
+    font-size: 0.8em;
+}
+</style>
+{% endblock %}

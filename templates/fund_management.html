@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}资金管理 - 策略管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-wallet me-2"></i>资金管理</h2>
+        <p class="text-muted">管理您的波段盈利和额外投入资金</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 资金概况 -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">资金概况</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <small class="text-muted">波段盈利资金</small>
+                    <div class="h4 text-success mb-0">
+                        <i class="fas fa-coins me-2"></i>${{ "%.2f"|format(portfolio.total_band_profit) }}
+                    </div>
+                    <small class="text-muted">来自波段操作的盈利</small>
+                </div>
+                
+                <div class="mb-3">
+                    <small class="text-muted">额外投入资金</small>
+                    <div class="h4 text-info mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>${{ "%.2f"|format(portfolio.additional_funds) }}
+                    </div>
+                    <small class="text-muted">您追加的投资资金</small>
+                </div>
+                
+                <hr>
+                
+                <div>
+                    <small class="text-muted">总可用资金</small>
+                    <div class="h3 text-primary mb-0">
+                        <i class="fas fa-wallet me-2"></i>${{ "%.2f"|format(portfolio.total_available_funds) }}
+                    </div>
+                    <small class="text-muted">可用于投资的总资金</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 额外资金设置 -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">额外资金设置</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('update_funds') }}">
+                    <div class="row align-items-end">
+                        <div class="col-md-6">
+                            <label for="additional_funds" class="form-label">额外投入资金</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="additional_funds" 
+                                       name="additional_funds" step="0.01" min="0"
+                                       value="{{ fund_info[1] if fund_info else 0 }}">
+                            </div>
+                            <div class="form-text">设置您可以额外投入的资金金额</div>
+                        </div>
+                        <div class="col-md-6">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>更新资金
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>资金使用策略：</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>价格回调时优先使用额外资金抄底</li>
+                        <li>正常情况下优先使用波段盈利资金</li>
+                        <li>系统会自动为您分配最优的资金来源</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 资金分配详情 -->
+{% if portfolio.portfolio %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">资金分配详情</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>股票</th>
+                        <th>当前持仓</th>
+                        <th>目标持仓</th>
+                        <th>还需增持</th>
+                        <th>资金需求</th>
+                        <th>分配资金</th>
+                        <th>负成本状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stock in portfolio.portfolio %}
+                    <tr>
+                        <td>
+                            <strong>{{ stock.code }}</strong><br>
+                            <small class="text-muted">{{ stock.name }}</small>
+                        </td>
+                        <td>{{ stock.current_shares }}股</td>
+                        <td>{{ stock.target_shares }}股</td>
+                        <td>{{ stock.target_shares - stock.current_shares }}股</td>
+                        <td>${{ "%.2f"|format((stock.target_shares - stock.current_shares) * stock.current_price) }}</td>
+                        <td>${{ "%.2f"|format(portfolio.total_available_funds / portfolio.portfolio|length) }}</td>
+                        <td>
+                            <span class="badge {{ 'bg-success' if stock.negative_cost_status == '已达成' else 'bg-warning' if '进度' in stock.negative_cost_status else 'bg-secondary' }}">
+                                {{ stock.negative_cost_status }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

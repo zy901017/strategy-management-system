@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}添加新股票 - 策略管理系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-plus me-2"></i>添加新股票
+                </h4>
+                <small class="text-muted">请输入您的股票仓位信息</small>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="code" class="form-label">股票代码 *</label>
+                            <input type="text" class="form-control" id="code" name="code" 
+                                   placeholder="如: AAPL, TSLA" required>
+                            <div class="form-text">请输入准确的股票代码</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">股票名称 *</label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   placeholder="如: Apple Inc" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="market" class="form-label">交易市场 *</label>
+                            <select class="form-select" id="market" name="market" required>
+                                <option value="">请选择市场</option>
+                                <option value="美股">美股</option>
+                                <option value="港股">港股</option>
+                                <option value="A股">A股</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="target_shares" class="form-label">目标持仓数量</label>
+                            <input type="number" class="form-control" id="target_shares" name="target_shares" 
+                                   value="100" min="1" required>
+                            <div class="form-text">您希望最终持有多少股</div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    <h5 class="mb-3">
+                        <i class="fas fa-info-circle me-2 text-info"></i>当前持仓状态
+                        <small class="text-muted">（如果您已经持有该股票）</small>
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="current_shares" class="form-label">当前持仓数量</label>
+                            <input type="number" class="form-control" id="current_shares" name="current_shares" 
+                                   value="0" min="0">
+                            <div class="form-text">您现在实际持有多少股</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="avg_cost" class="form-label">平均持仓成本</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="avg_cost" name="avg_cost" 
+                                       step="0.01" min="0" value="0">
+                            </div>
+                            <div class="form-text">您的平均买入价格</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="initial_investment" class="form-label">初始投入金额</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="initial_investment" 
+                                       name="initial_investment" step="0.01" min="0" value="0">
+                            </div>
+                            <div class="form-text">用于负成本计算的基准（总持仓成本）</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="total_fees" class="form-label">累计交易费用</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="total_fees" name="total_fees" 
+                                       step="0.01" min="0" value="0">
+                            </div>
+                            <div class="form-text">已支付的手续费总额</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="current_price" class="form-label">当前价格</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="current_price" 
+                                       name="current_price" step="0.01" min="0" value="0">
+                            </div>
+                            <div class="form-text">最新的股票价格</div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        <strong>提示：</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>如果您是新添加股票，只需填写基本信息和目标持仓</li>
+                            <li>如果您已持有该股票，请准确填写当前持仓状态</li>
+                            <li>初始投入金额用于计算负成本达成进度</li>
+                            <li>添加股票后，您可以在交易记录页面添加历史交易</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>返回
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>添加股票
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 自动计算初始投入金额
+document.addEventListener('DOMContentLoaded', function() {
+    const currentShares = document.getElementById('current_shares');
+    const avgCost = document.getElementById('avg_cost');
+    const totalFees = document.getElementById('total_fees');
+    const initialInvestment = document.getElementById('initial_investment');
+    
+    function calculateInitialInvestment() {
+        const shares = parseFloat(currentShares.value) || 0;
+        const cost = parseFloat(avgCost.value) || 0;
+        const fees = parseFloat(totalFees.value) || 0;
+        
+        if (shares > 0 && cost > 0) {
+            const total = (shares * cost) + fees;
+            initialInvestment.value = total.toFixed(2);
+        }
+    }
+    
+    currentShares.addEventListener('input', calculateInitialInvestment);
+    avgCost.addEventListener('input', calculateInitialInvestment);
+    totalFees.addEventListener('input', calculateInitialInvestment);
+});
+</script>
+{% endblock %}
